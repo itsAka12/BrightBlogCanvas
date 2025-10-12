@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import MasonryGallery from "@/components/MasonryGallery";
 import { Images } from "lucide-react";
 import image1 from "@assets/generated_images/Creative_workspace_blog_image_3cb123df.png";
@@ -7,15 +8,28 @@ import image4 from "@assets/generated_images/Sunset_ocean_blog_featured_image_3d
 import heroImage from "@assets/generated_images/Van_Gogh_swirl_hero_background_400d33bf.png";
 
 export default function Gallery() {
-  const images = [
+  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/gallery")
+      .then((res) => res.json())
+      .then((data) => {
+        setUploadedImages(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const staticImages = [
     { url: image1, title: "Creative Workspace" },
     { url: image2, title: "Abstract Art" },
     { url: image3, title: "Van Gogh Landscape" },
     { url: image4, title: "Sunset Ocean" },
     { url: heroImage, title: "Van Gogh Swirls" },
-    { url: image1, title: "Creative Workspace 2" },
-    { url: image3, title: "Nature Scene" },
   ];
+
+  const allImages = [...staticImages, ...uploadedImages];
 
   return (
     <div className="min-h-screen py-16 px-4">
@@ -28,7 +42,7 @@ export default function Gallery() {
           </p>
         </div>
 
-        <MasonryGallery images={images} />
+        <MasonryGallery images={allImages} />
       </div>
     </div>
   );

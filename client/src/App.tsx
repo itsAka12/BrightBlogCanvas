@@ -9,6 +9,7 @@ import AddBlog from "@/pages/AddBlog";
 import Gallery from "@/pages/Gallery";
 import Motivation from "@/pages/Motivation";
 import Games from "@/pages/Games";
+import BlogDetail from "@/pages/BlogDetail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/gallery" component={Gallery} />
       <Route path="/motivation" component={Motivation} />
       <Route path="/games" component={Games} />
+      <Route path="/blog/:id" component={BlogDetail} />
       <Route component={NotFound} />
     </Switch>
   );

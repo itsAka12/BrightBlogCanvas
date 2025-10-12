@@ -34,15 +34,70 @@ export default function AddBlogForm() {
     setShowEmojiPicker(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Blog Post Created!",
-      description: "Your artistic creation has been saved.",
-    });
-    setTitle("");
-    setContent("");
-    setTags([]);
+
+    try {
+      let imageUrl = "";
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Image upload failed");
+        }
+
+        const data = await response.json();
+        imageUrl = data.url;
+      }
+
+      const blogData = {
+        title,
+        content,
+        tags: JSON.stringify(tags),
+        image: imageUrl,
+        date: new Date().toISOString(),
+      };
+
+      const res = await fetch("/api/blogs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(blogData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create blog");
+      }
+
+      toast({
+        title: "Blog Post Created!",
+        description: "Your artistic creation has been saved.",
+      });
+
+      setTitle("");
+      setContent("");
+      setTags([]);
+      setImageFile(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -111,7 +166,18 @@ export default function AddBlogForm() {
 
           <div>
             <Label>Image Upload</Label>
-            <div className="border-2 border-dashed rounded-md p-8 text-center hover-elevate transition-all cursor-pointer" data-testid="upload-area">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              id="image-upload"
+            />
+            <label
+              htmlFor="image-upload"
+              className="border-2 border-dashed rounded-md p-8 text-center hover-elevate transition-all cursor-pointer block"
+              data-testid="upload-area"
+            >
               <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
                 Click to upload or drag and drop
@@ -119,7 +185,12 @@ export default function AddBlogForm() {
               <p className="text-xs text-muted-foreground mt-1">
                 PNG, JPG up to 10MB
               </p>
-            </div>
+              {imageFile && (
+                <p className="text-sm text-primary mt-2">
+                  Selected: {imageFile.name}
+                </p>
+              )}
+            </label>
           </div>
 
           <div>
