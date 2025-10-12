@@ -1,19 +1,69 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Calendar, Flame, Trophy } from "lucide-react";
 
 export default function StreakTracker() {
-  const currentStreak = 7;
-  const bestStreak = 12;
-  const totalPosts = 45;
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [last30Days, setLast30Days] = useState([]);
 
-  const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    const hasPost = Math.random() > 0.4;
-    const isToday = i === 29;
-    return { date, hasPost, isToday };
-  });
+  useEffect(() => {
+    async function fetchStreakData() {
+      try {
+        const res = await fetch("/api/streak");
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentStreak(data.streak);
+        }
+        const postsRes = await fetch("/api/blogs");
+        if (postsRes.ok) {
+          const posts = await postsRes.json();
+          setTotalPosts(posts.length);
+
+          // Calculate best streak
+          let best = 0;
+          let current = 1;
+          const sortedDates = posts
+            .map((p) => new Date(p.date))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+          for (let i = 1; i < sortedDates.length; i++) {
+            const diff = (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+            if (diff === 1) {
+              current++;
+            } else if (diff > 1) {
+              best = Math.max(best, current);
+              current = 1;
+            }
+          }
+          best = Math.max(best, current);
+          setBestStreak(best);
+
+          // Last 30 days posts
+          const today = new Date();
+          const days = Array.from({ length: 30 }, (_, i) => {
+            const date = new Date(today);
+            date.setDate(today.getDate() - (29 - i));
+            const hasPost = posts.some((p) => {
+              const postDate = new Date(p.date);
+              return postDate.toDateString() === date.toDateString();
+            });
+            const isToday = i === 29;
+            return { date, hasPost, isToday };
+          });
+          setLast30Days(days);
+        }
+      } catch (error) {
+        console.error("Failed to fetch streak data", error);
+      }
+    }
+
+    fetchStreakData();
+
+    const interval = setInterval(fetchStreakData, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Card className="border-2">

@@ -43,6 +43,9 @@ export default function Hero() {
           A personal space for creative thoughts, artistic photography, and daily inspiration.
           Painted with the spirit of Van Gogh.
         </p>
+        <p className="font-serif text-md md:text-lg text-muted-foreground max-w-2xl mx-auto">
+          Hi, I'm Akanksha, a passionate artist and writer exploring the intersection of creativity and technology. Welcome to my digital canvas where I share my journey through art, design, and inspiration.
+        </p>
 
         <Button 
           variant="default" 
