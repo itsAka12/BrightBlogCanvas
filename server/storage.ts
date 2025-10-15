@@ -1,7 +1,10 @@
-import { type User, type InsertUser, type Blog, type InsertBlog } from "@shared/schema";
+import { type User, type InsertUser, type Blog, type InsertBlog, users, blogs } from "@shared/schema";
 import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -111,4 +114,48 @@ export class JsonStorage implements IStorage {
   }
 }
 
-export const storage = new JsonStorage();
+export class DbStorage implements IStorage {
+  private db: ReturnType<typeof drizzle>;
+
+  constructor() {
+    const sql = neon(process.env.DATABASE_URL!);
+    this.db = drizzle(sql, { schema: { users, blogs } });
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async getBlogs(): Promise<Blog[]> {
+    const result = await this.db.select().from(blogs).orderBy(blogs.date);
+    return result.reverse(); // Sort by date descending
+  }
+
+  async getBlog(id: string): Promise<Blog | undefined> {
+    const result = await this.db.select().from(blogs).where(eq(blogs.id, id));
+    return result[0];
+  }
+
+  async createBlog(insertBlog: InsertBlog): Promise<Blog> {
+    const result = await this.db.insert(blogs).values(insertBlog).returning();
+    return result[0];
+  }
+
+  async deleteBlog(id: string): Promise<boolean> {
+    const result = await this.db.delete(blogs).where(eq(blogs.id, id));
+    return result.rowCount > 0;
+  }
+}
+
+export const storage = process.env.DATABASE_URL ? new DbStorage() : new JsonStorage();
